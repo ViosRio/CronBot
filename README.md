@@ -1,14 +1,13 @@
 
-```markdown
-# 🔥 **CRONBOT**  
-### *Proxy Destekli, Advanced Cron Job Tetikleyici*  
+# 🔥 CRONBOT 
+### Proxy Destekli, Advanced Cron Job Tetikleyici
 #### POWERED BY DEEPSEEK JOBS  
 
 ![CronBot Logo](https://raw.githubusercontent.com/ViosRio/CronBot/refs/heads/main/assets/logo.png)  
 
 ---
 
-## 🌟 **Özellikler**  
+## 🌟 Özellikler 
 ✔ **Proxy Destekli** → WebShare.io API ile otomatik proxy rotasyonu  
 ✔ **Multi-CRON Yönetimi** → Aynı anda birden fazla URL tetikleme  
 ✔ **Log Sistemi** → Tüm tetiklemeler kayıt altında  
@@ -19,16 +18,14 @@
 ## 🛠️ **Kurulum**  
 1. **Gereksinimler**:  
    ```bash
-   pip install pyrogram requests
+   $ pip install pyrogram requests
+   $ git clone https://github.com/ViosRio/CronBot
    ```
 2. **Config Ayarları**:  
    `config.py` dosyasını düzenle:  
    ```python
-   API_ID = "12345"          # my.telegram.org'dan al
-   API_HASH = "abcdef123..." # my.telegram.org'dan al
-   BOT_TOKEN = "123:ABC..."  # @BotFather'dan al
-   WEBSHARE_API_KEY = "..."  # webshare.io API key
-   START_IMG = "https://example.com/start.jpg"  # Start resmi URL
+   BOT_TOKEN = " "  # @BotFather'dan al
+   WEBSHARE_API_KEY = " "  # webshare.io API key
    ```
 
 3. **Botu Çalıştır**:  
@@ -69,8 +66,8 @@
 
 ---
 
-## 📜 **Lisans**  
-MIT License - **Ücretsiz kullanım, değiştirme ve dağıtım!**  
+## 📜 Lisans
+MIT License - Ücretsiz kullanım, değiştirme ve dağıtım! 
 
 ---
 
@@ -78,14 +75,6 @@ MIT License - **Ücretsiz kullanım, değiştirme ve dağıtım!**
   <img src="https://raw.githubusercontent.com/ViosRio/CronBot/refs/heads/main/assets/logo.png" width="150">
   <br>
   <strong>🚀 POWERED BY DEEPSEEK JOBS</strong>  
-  <sub>Next Generation Automation</sub>
+  <sub></sub>
 </div>
 ```
-
-### Kullanım Talimatları:
-1. Bu kodu kopyala
-2. GitHub repo'nda `README.md` dosyası oluştur
-3. İçine yapıştır
-4. Commit yap
-
-Özel not: Ekran görüntüsü linklerini kendi screenshotlarınla değiştirmeyi unutma kanki! 😊
