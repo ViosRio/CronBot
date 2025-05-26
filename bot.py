@@ -1,6 +1,7 @@
 import os
 import requests
 import logging
+import json
 from random import choice
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
@@ -20,6 +21,21 @@ logger = logging.getLogger(__name__)
 
 # Global değişken
 USE_PROXY = False  # Varsayılan değer
+
+class DataManager:
+    @staticmethod
+    def save_data(chat_id: int, data: dict):
+        os.makedirs('data', exist_ok=True)
+        with open(f'data/{chat_id}.json', 'w') as f:
+            json.dump(data, f)
+    
+    @staticmethod
+    def load_data(chat_id: int) -> dict:
+        try:
+            with open(f'data/{chat_id}.json', 'r') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
 
 class ProxyManager:
     def __init__(self):
@@ -44,6 +60,26 @@ class ProxyManager:
             
         except Exception as e:
             logger.error(f"❌ Proxy yükleme hatası: {str(e)}")
+            # Fallback to alternative proxy API if primary fails
+            self._try_fallback_proxy_api()
+
+    def _try_fallback_proxy_api(self):
+        try:
+            response = requests.get(
+                "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http",
+                timeout=10
+            )
+            response.raise_for_status()
+            
+            self.proxy_list = [
+                f"http://{line.strip()}"
+                for line in response.text.split('\n')
+                if line.strip()
+            ]
+            logger.info(f"✅ Fallback: {len(self.proxy_list)} proxy yüklendi")
+            
+        except Exception as e:
+            logger.error(f"❌ Fallback proxy hatası: {str(e)}")
             self.proxy_list = []
 
     def get_random_proxy(self):
@@ -62,6 +98,7 @@ class CronManager:
         
         if cron_url not in self.user_jobs[user_id]:
             self.user_jobs[user_id].append(cron_url)
+            DataManager.save_data(user_id, {'jobs': self.user_jobs[user_id]})
             return True
         return False
     
@@ -70,11 +107,15 @@ class CronManager:
         return url.startswith(('http://', 'https://'))
     
     def get_user_jobs(self, user_id: int) -> list:
+        if user_id not in self.user_jobs:
+            data = DataManager.load_data(user_id)
+            self.user_jobs[user_id] = data.get('jobs', [])
         return self.user_jobs.get(user_id, [])
     
     def clear_jobs(self, user_id: int):
         if user_id in self.user_jobs:
             del self.user_jobs[user_id]
+        DataManager.save_data(user_id, {'jobs': []})
     
     def trigger_job(self, cron_url: str) -> bool:
         try:
@@ -113,10 +154,13 @@ def get_start_message(user):
 ▸ Zamanlanmış görev yönetimi
 ▸ Kolay kullanımlı arayüz
 
-🚀 Kullanmaya başlamak için aşağıdaki butonları kullanın!
+**Örnek Kullanım:**
+`/add https://example.com/cron.php`
+
+**Demo için aşağıdaki butonu kullanabilirsiniz:**
 """
 
-MAIN_BUTTONS = InlineKeyboardMarkup([
+START_BUTTONS = InlineKeyboardMarkup([
     [InlineKeyboardButton("⏰ Cron Ekle", callback_data="add_cron")],
     [
         InlineKeyboardButton("📋 Cron Listesi", callback_data="list_cron"),
@@ -125,7 +169,8 @@ MAIN_BUTTONS = InlineKeyboardMarkup([
     [
         InlineKeyboardButton("🔧 Ayarlar", callback_data="settings"),
         InlineKeyboardButton("🗑️ Temizle", callback_data="clear_cron")
-    ]
+    ],
+    [InlineKeyboardButton("🛠️ Örnek Cron Dosyası Al", callback_data="get_example")]
 ])
 
 def get_settings_buttons():
@@ -143,7 +188,7 @@ async def start_command(client, message):
     await message.reply_photo(
         photo=START_IMG,
         caption=get_start_message(message.from_user),
-        reply_markup=MAIN_BUTTONS
+        reply_markup=START_BUTTONS
     )
 
 @app.on_message(filters.command("add"))
@@ -173,13 +218,40 @@ async def list_cron_command(client, message):
 # Callback Handler
 @app.on_callback_query()
 async def callback_handler(client, query: CallbackQuery):
-    global USE_PROXY  # Global değişkeni fonksiyon içinde kullanacağımızı belirtiyoruz
+    global USE_PROXY
     user = query.from_user
     data = query.data
     
     try:
         if data == "add_cron":
-            await query.message.reply("Lütfen cron URL'sini gönderin:\nÖrnek: /add http://example.com/cron.php")
+            await query.message.reply(
+                "Lütfen cron URL'sini gönderin:\nÖrnek: /add http://example.com/cron.php\n\n"
+                "Veya test için aşağıdaki örnek dosyayı kullanabilirsiniz.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🛠️ Örnek Cron Dosyası Al", callback_data="get_example")]
+                ])
+            )
+        
+        elif data == "get_example":
+            # Create example cron file
+            example_content = """<?php
+// Basit Cron Örneği
+file_put_contents('cron_log.txt', date('Y-m-d H:i:s') . " - Cron çalıştı\\n", FILE_APPEND);
+echo "Cron başarıyla çalıştı!";
+?>"""
+            
+            # Save temporarily
+            with open("example_cron.php", "w") as f:
+                f.write(example_content)
+            
+            # Send to user
+            await client.send_document(
+                chat_id=query.message.chat.id,
+                document="example_cron.php",
+                caption="📝 Örnek cron dosyası. Bu dosyayı sunucunuza yükleyip URL'sini bota ekleyebilirsiniz."
+            )
+            os.remove("example_cron.php")
+            await query.answer("Örnek dosya gönderildi!")
         
         elif data == "list_cron":
             jobs = cron_manager.get_user_jobs(user.id)
@@ -188,7 +260,7 @@ async def callback_handler(client, query: CallbackQuery):
             
             await query.edit_message_text(
                 "📋 Cron Job Listesi:\n\n" + "\n".join(f"▸ `{job}`" for job in jobs),
-                reply_markup=MAIN_BUTTONS
+                reply_markup=START_BUTTONS
             )
         
         elif data == "trigger_cron":
@@ -206,7 +278,7 @@ async def callback_handler(client, query: CallbackQuery):
             
             await query.edit_message_text(
                 "⚡ Tetikleme Sonuçları:\n\n" + "\n".join(results),
-                reply_markup=MAIN_BUTTONS
+                reply_markup=START_BUTTONS
             )
         
         elif data == "toggle_proxy":
@@ -223,18 +295,20 @@ async def callback_handler(client, query: CallbackQuery):
         elif data == "clear_cron":
             cron_manager.clear_jobs(user.id)
             await query.answer("🗑️ Tüm cron job'lar temizlendi")
-            await query.edit_message_reply_markup(reply_markup=MAIN_BUTTONS)
+            await query.edit_message_reply_markup(reply_markup=START_BUTTONS)
         
         elif data == "settings":
             await query.edit_message_text(
-                "⚙️ Ayarlar",
+                "⚙️ Ayarlar\n\n"
+                f"Proxy Durumu: {'✅ Açık' if USE_PROXY else '❌ Kapalı'}\n"
+                f"Mevcut Proxy Sayısı: {len(proxy_manager.proxy_list)}",
                 reply_markup=get_settings_buttons()
             )
         
         elif data == "back_to_main":
             await query.edit_message_text(
                 get_start_message(user),
-                reply_markup=MAIN_BUTTONS
+                reply_markup=START_BUTTONS
             )
     
     except Exception as e:
@@ -243,4 +317,6 @@ async def callback_handler(client, query: CallbackQuery):
 
 if __name__ == "__main__":
     logger.info("🚀 Bot başlatılıyor...")
+    # Create data directory if not exists
+    os.makedirs('data', exist_ok=True)
     app.run()
