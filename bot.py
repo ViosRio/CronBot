@@ -150,14 +150,12 @@ def get_start_message(user):
 
 **WebShare Proxy Destekli Cron Job Tetikleyici**
 
-▸ Proxy ile güvenli tetikleme
-▸ Zamanlanmış görev yönetimi
-▸ Kolay kullanımlı arayüz
+▸ Proxy İle Güvenli Tetikleme
+▸ Zamanlanmış Görev Yönetimi
+▸ Kolay Kullanımlı Arayüz
 
-**Örnek Kullanım:**
-`/add https://example.com/cron.php`
 
-**Demo için aşağıdaki butonu kullanabilirsiniz:**
+**Demo İçin Aşağıdaki Butonu kullanabilirsiniz:**
 """
 
 START_BUTTONS = InlineKeyboardMarkup([
@@ -194,14 +192,14 @@ async def start_command(client, message):
 @app.on_message(filters.command("add"))
 async def add_cron_command(client, message):
     if len(message.command) < 2:
-        return await message.reply("❌ Kullanım: /add <cron_url>")
+        return await message.reply("❌ Kullanım: /add ceren.xyz/cron.php")
     
     cron_url = message.command[1]
     try:
         if cron_manager.add_job(message.from_user.id, cron_url):
-            await message.reply(f"✅ Cron job eklendi:\n`{cron_url}`")
+            await message.reply(f"✅ Cron Job Eklendi:\n`{cron_url}`")
         else:
-            await message.reply("⚠️ Bu cron job zaten listenizde!")
+            await message.reply("⚠️ Bu Cron Job Zaten Listenizde!")
     except ValueError as e:
         await message.reply(f"❌ Hata: {str(e)}")
 
@@ -209,7 +207,7 @@ async def add_cron_command(client, message):
 async def list_cron_command(client, message):
     jobs = cron_manager.get_user_jobs(message.from_user.id)
     if not jobs:
-        return await message.reply("📭 Cron job listeniz boş")
+        return await message.reply("📭 Cron Job Listeniz Boş")
     
     await message.reply(
         "📋 Cron Job Listesi:\n\n" + "\n".join(f"▸ `{job}`" for job in jobs)
@@ -225,8 +223,8 @@ async def callback_handler(client, query: CallbackQuery):
     try:
         if data == "add_cron":
             await query.message.reply(
-                "Lütfen cron URL'sini gönderin:\nÖrnek: /add http://example.com/cron.php\n\n"
-                "Veya test için aşağıdaki örnek dosyayı kullanabilirsiniz.",
+                "Lütfen Cron URL'sini Gönderin:\nÖrnek: /add ceren/xyz.com/cron.php\n\n"
+                "Veya Yest için Aşağıdaki Örnek Dosyayı kullanabilirsiniz.",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("🛠️ Örnek Cron Dosyası Al", callback_data="get_example")]
                 ])
