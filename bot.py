@@ -19,7 +19,7 @@ class ProxyManager:
         try:
             response = requests.get(
                 f"https://proxy.webshare.io/api/v2/proxy/list/",
-                headers={"Authorization": f"Token {yaydj41805nf8yt92z1cd97vhfir2lqvbywah7ix}"}
+                headers={"Authorization": f"Token {WEBSHARE_API_KEY}"}
             )
             if response.status_code == 200:
                 self.proxy_list = [
