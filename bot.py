@@ -1,10 +1,10 @@
-#
 import os
 import requests
 import logging
 from random import choice
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+import asyncio
 from config import *
 
 # Log Ayarları
@@ -17,6 +17,9 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Global değişken
+USE_PROXY = False  # Varsayılan değer
 
 class ProxyManager:
     def __init__(self):
@@ -73,9 +76,9 @@ class CronManager:
         if user_id in self.user_jobs:
             del self.user_jobs[user_id]
     
-    def trigger_job(self, cron_url: str, use_proxy: bool) -> bool:
+    def trigger_job(self, cron_url: str) -> bool:
         try:
-            proxy = proxy_manager.get_random_proxy() if use_proxy else None
+            proxy = proxy_manager.get_random_proxy() if USE_PROXY else None
             response = requests.get(
                 cron_url,
                 proxies={"http": proxy, "https": proxy} if proxy else None,
@@ -125,10 +128,10 @@ MAIN_BUTTONS = InlineKeyboardMarkup([
     ]
 ])
 
-def get_settings_buttons(use_proxy: bool):
+def get_settings_buttons():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(f"Proxy {'✅' if use_proxy else '❌'}", callback_data="toggle_proxy"),
+            InlineKeyboardButton(f"Proxy {'✅' if USE_PROXY else '❌'}", callback_data="toggle_proxy"),
             InlineKeyboardButton("🔄 Proxy Yenile", callback_data="refresh_proxy")
         ],
         [InlineKeyboardButton("🔙 Geri", callback_data="back_to_main")]
@@ -170,6 +173,7 @@ async def list_cron_command(client, message):
 # Callback Handler
 @app.on_callback_query()
 async def callback_handler(client, query: CallbackQuery):
+    global USE_PROXY  # Global değişkeni fonksiyon içinde kullanacağımızı belirtiyoruz
     user = query.from_user
     data = query.data
     
@@ -196,7 +200,7 @@ async def callback_handler(client, query: CallbackQuery):
             results = []
             
             for job in jobs:
-                success = cron_manager.trigger_job(job, USE_PROXY)
+                success = cron_manager.trigger_job(job)
                 results.append(f"{'✅' if success else '❌'} {job}")
                 await asyncio.sleep(1)  # Rate limiting
             
@@ -206,11 +210,10 @@ async def callback_handler(client, query: CallbackQuery):
             )
         
         elif data == "toggle_proxy":
-            global USE_PROXY
             USE_PROXY = not USE_PROXY
             await query.answer(f"Proxy modu {'AÇIK' if USE_PROXY else 'KAPALI'}")
             await query.edit_message_reply_markup(
-                reply_markup=get_settings_buttons(USE_PROXY)
+                reply_markup=get_settings_buttons()
             )
         
         elif data == "refresh_proxy":
@@ -225,7 +228,7 @@ async def callback_handler(client, query: CallbackQuery):
         elif data == "settings":
             await query.edit_message_text(
                 "⚙️ Ayarlar",
-                reply_markup=get_settings_buttons(USE_PROXY)
+                reply_markup=get_settings_buttons()
             )
         
         elif data == "back_to_main":
