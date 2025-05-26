@@ -105,9 +105,9 @@ app = Client(
 # UI Elementleri
 def get_start_message(user):
     return f"""
-✨ **Merhaba {user.first_name}!** ✨
+**Merhaba {user.first_name}!** 
 
-{emoji} **WebShare Proxy Destekli Cron Job Tetikleyici**
+**WebShare Proxy Destekli Cron Job Tetikleyici**
 
 ▸ Proxy ile güvenli tetikleme
 ▸ Zamanlanmış görev yönetimi
