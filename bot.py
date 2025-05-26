@@ -1,180 +1,199 @@
-#
-#
-#-----------CREDITS -----------
-# telegram : @legend_coder
-# github : noob-mukesh
-# Powered by DeepSeek ❤️‍🔥
-
 import os
 import json
+import requests
 from pathlib import Path
 from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 import asyncio
-from random import choice
 import logging
 from config import *
 
-# 1. CLIENT TANIMI (EN ÜSTTE)
+# WebShare Proxy Yönetimi
+class ProxyManager:
+    def __init__(self):
+        self.proxy_list = []
+        self.current_proxy = None
+        self.load_proxies()
+        
+    def load_proxies(self):
+        try:
+            response = requests.get(
+                f"https://proxy.webshare.io/api/v2/proxy/list/",
+                headers={"Authorization": f"Token {WEBSHARE_API_KEY}"}
+            )
+            if response.status_code == 200:
+                self.proxy_list = [
+                    f"http://{p['username']}:{p['password']}@{p['proxy_address']}:{p['ports']['http']}"
+                    for p in response.json()['results']
+                ]
+                logger.info(f"{len(self.proxy_list)} proxy yüklendi")
+        except Exception as e:
+            logger.error(f"Proxy yükleme hatası: {e}")
+
+    def get_proxy(self):
+        if not self.proxy_list:
+            return None
+        self.current_proxy = choice(self.proxy_list)
+        return self.current_proxy
+
+proxy_manager = ProxyManager()
+
+# Cron Job Yöneticisi
+class CronManager:
+    def __init__(self):
+        self.user_jobs = {}
+        
+    def add_job(self, user_id, cron_url):
+        if user_id not in self.user_jobs:
+            self.user_jobs[user_id] = []
+        self.user_jobs[user_id].append(cron_url)
+        
+    def get_jobs(self, user_id):
+        return self.user_jobs.get(user_id, [])
+    
+    def trigger_job(self, cron_url):
+        try:
+            proxy = proxy_manager.get_proxy() if USE_PROXY else None
+            response = requests.get(
+                cron_url,
+                proxies={"http": proxy, "https": proxy} if proxy else None,
+                timeout=10
+            )
+            return response.status_code == 200
+        except Exception as e:
+            logger.error(f"Cron tetikleme hatası: {e}")
+            return False
+
+cron_manager = CronManager()
+
+# Pyrogram Client
 app = Client(
-    "roxy-mask",
+    "proxy-cron-bot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-# Log ayarları
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 # Başlangıç Mesajı
 def get_start_message(user):
     return f"""
-✨ **SELAM** ✨
+✨ **Merhaba {user.first_name}!** ✨
 
-{emoji} **Panelinizin Görev Zamanlayıcı Derdi Olan Cron Job Tetikleyicisi**
+{emoji} **WebShare Proxy Destekli Cron Job Tetikleyici**
 
-▸ **AUTO** TEKRARLAYAN ZAMANLAMA
-▸ **PROXY** PROXY DESTEKLİ MASKELEME
-▸ **NOTEPAD** NOT DEFTERİ GİBİ KAYDET
+▸ Proxy ile güvenli tetikleme
+▸ Zamanlanmış görev yönetimi
+▸ Kolay kullanımlı arayüz
 
- Powered by DeepSeek ❤️‍🔥
+🚀 Kullanmaya başlamak için aşağıdaki butonları kullanın!
 """
 
 # Butonlar
 MAIN_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("🌟 EŞLEŞ", callback_data="find_partner")],
+    [InlineKeyboardButton("⏰ Cron Ekle", callback_data="add_cron")],
     [
-        InlineKeyboardButton("📜 Yardım", callback_data="help"),
-        InlineKeyboardButton("⚙️ Ayarlar", callback_data="settings")
+        InlineKeyboardButton("📋 Cron Listesi", callback_data="list_cron"),
+        InlineKeyboardButton("⚡ Tetikle", callback_data="trigger_cron")
     ],
     [
-        InlineKeyboardButton("👥 Arkadaşlar", callback_data="friends"),
-        InlineKeyboardButton("👤 Kurucu", url=f"https://t.me/{OWNER_USERNAME}")
-    ],
-    [InlineKeyboardButton("❌ İşlemi durdur", callback_data="end_chat")]
+        InlineKeyboardButton("🔧 Ayarlar", callback_data="settings"),
+        InlineKeyboardButton("❌ Temizle", callback_data="clear_cron")
+    ]
 ])
 
 SETTINGS_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("🔒 PROXY Mod Aç/Kapat", callback_data="toggle_private")],
-    [InlineKeyboardButton("🔙 Geri", callback_data="back_to_main")]
-])
-
-HELP_BUTTONS = InlineKeyboardMarkup([
     [
-        InlineKeyboardButton("🔍 Komutlar", callback_data="commands"),
-        InlineKeyboardButton("💡 Nasıl Kullanılır?", callback_data="how_to_use")
+        InlineKeyboardButton(f"Proxy {'✅' if USE_PROXY else '❌'}", callback_data="toggle_proxy"),
+        InlineKeyboardButton("🔄 Proxy Yenile", callback_data="refresh_proxy")
     ],
     [InlineKeyboardButton("🔙 Geri", callback_data="back_to_main")]
 ])
 
-# Handler'lar
+# Komutlar
 @app.on_message(filters.command("start"))
 async def start(client, message):
-    global total_users
-    user = message.from_user
-    if user.id not in user_friends:
-        user_friends[user.id] = []
-        total_users += 1
     await message.reply_photo(
         photo=START_IMG,
-        caption=get_start_message(user),
+        caption=get_start_message(message.from_user),
         reply_markup=MAIN_BUTTONS
     )
 
-@app.on_message(filters.command("settings"))
-async def settings(client, message):
-    await message.reply("⚙️ **Ayarlar**", reply_markup=SETTINGS_BUTTONS)
-
-@app.on_message(filters.command("private"))
-async def toggle_private(client, message):
-    user_id = message.from_user.id
-    private_mode[user_id] = not private_mode.get(user_id, False)
-    status = "açıldı" if private_mode[user_id] else "kapatıldı"
-    await message.reply(f"🔒 Gizli mod {status}!")
-
 @app.on_message(filters.command("add"))
-async def add_friend(client, message):
+async def add_cron(client, message):
     if len(message.command) > 1:
-        friend_id = message.command[1]
-        if message.from_user.id not in user_friends:
-            user_friends[message.from_user.id] = []
-        if friend_id not in user_friends[message.from_user.id]:
-            user_friends[message.from_user.id].append()
-            await message.reply(f"✅ Cron Job eklendi: ")
-        else:
-            await message.reply("⚠️ Bu Zamanlama Zaten listenizde!")
+        cron_url = message.command[1]
+        cron_manager.add_job(message.from_user.id, cron_url)
+        await message.reply(f"✅ Cron job eklendi: `{cron_url}`")
     else:
-        await message.reply("Kullanım: /add viosrio.serv00.net/cron.php")
+        await message.reply("Kullanım: /add <cron_url>")
 
 @app.on_message(filters.command("list"))
-async def list_friends(client, message):
-    friends = user_friends.get(message.from_user.id, [])
-    if friends:
-        await message.reply(f"👥 :\n NOTLAR" + "\n".join())
+async def list_cron(client, message):
+    jobs = cron_manager.get_jobs(message.from_user.id)
+    if jobs:
+        await message.reply("📋 Cron Job Listesi:\n\n" + "\n".join(f"▸ `{job}`" for job in jobs))
     else:
-        await message.reply("Jobs listeniz boş 😢")
+        await message.reply("Cron job listeniz boş")
 
 # Callback Query Handler
+@app.on_callback_query()
+async def handle_callback(client, query):
+    user = query.from_user
+    data = query.data
     
-    elif data == "end_chat":
-        if user.id in active_chats:
-            partner_id = active_chats[user.id]
-            await client.send_message(partner_id, "❌ işlem sonlandırıldı!", reply_markup=MAIN_BUTTONS)
-            del active_chats[partner_id]
-            del active_chats[user.id]
-            await query.answer("işlem sonlandırıldı!", show_alert=True)
-            await query.edit_message_reply_markup(reply_markup=MAIN_BUTTONS)
+    if data == "add_cron":
+        await query.message.reply("Lütfen eklemek istediğiniz cron URL'sini gönderin:\nÖrnek: /add http://example.com/cron.php")
+    
+    elif data == "list_cron":
+        jobs = cron_manager.get_jobs(user.id)
+        if jobs:
+            await query.edit_message_text(
+                "📋 Cron Job Listesi:\n\n" + "\n".join(f"▸ `{job}`" for job in jobs),
+                reply_markup=MAIN_BUTTONS
+            )
         else:
-            await query.answer("TEKRARLAYAN!", show_alert=True)
+            await query.answer("Cron job listeniz boş", show_alert=True)
+    
+    elif data == "trigger_cron":
+        jobs = cron_manager.get_jobs(user.id)
+        if not jobs:
+            await query.answer("Tetikleyecek cron job bulunamadı", show_alert=True)
+            return
+            
+        await query.edit_message_text("⏳ Cron job'lar tetikleniyor...")
+        results = []
+        for job in jobs:
+            success = cron_manager.trigger_job(job)
+            results.append(f"{'✅' if success else '❌'} {job}")
+        
+        await query.edit_message_text(
+            "⚡ Cron Tetikleme Sonuçları:\n\n" + "\n".join(results),
+            reply_markup=MAIN_BUTTONS
+        )
+    
+    elif data == "toggle_proxy":
+        global USE_PROXY
+        USE_PROXY = not USE_PROXY
+        status = "AÇIK" if USE_PROXY else "KAPALI"
+        await query.answer(f"Proxy modu {status}", show_alert=True)
+        await query.edit_message_reply_markup(reply_markup=SETTINGS_BUTTONS)
+    
+    elif data == "refresh_proxy":
+        proxy_manager.load_proxies()
+        await query.answer(f"{len(proxy_manager.proxy_list)} proxy yenilendi", show_alert=True)
+    
+    elif data == "clear_cron":
+        cron_manager.user_jobs[user.id] = []
+        await query.answer("Tüm cron job'lar temizlendi", show_alert=True)
+        await query.edit_message_reply_markup(reply_markup=MAIN_BUTTONS)
     
     elif data == "settings":
-        await query.edit_message_text("⚙️ **Ayarlar**", reply_markup=SETTINGS_BUTTONS)
-    
-    elif data == "toggle_private":
-        private_mode[user.id] = not private_mode.get(user.id, False)
-        status = "açıldı" if private_mode[user.id] else "Proxy kapatıldı"
-        await query.answer(f"Gizli mod {status}!")
-        await query.edit_message_text("⚙️ **Ayarlar**", reply_markup=SETTINGS_BUTTONS)
-    
-    elif data == "friends":
-        await query.edit_message_text("👥 **Notlar**", reply_markup=FRIENDS_BUTTONS)
-    
-    elif data == "add_friend":
-        await query.answer("Arkadaş eklemek için: /add viosrio.serv00.net/cronjob.php", show_alert=True)
-    
-    elif data == "list_friends":
-        friends = user_friends.get(user.id, [])
-        if friends:
-            await query.edit_message_text(f"👥 Notlar:\n" + "\n".join())
-        else:
-            await query.answer("Not listeniz boş 😢", show_alert=True)
-    
-    elif data == "help":
-        await query.edit_message_text(
-            "📚 **Yardım Menüsü**\n\n"
-            "• /start = Botu başlat\n"
-            "• /private = Vpn modu aç/kapat\n"
-            "• /add serv.net/cron.php = Ekle\n"
-            "• /list = Cron listesi\n"
-            "• /settings = Ayarlar\n\n"
-            reply_markup=HELP_BUTTONS
-        )
+        await query.edit_message_text("⚙️ Ayarlar", reply_markup=SETTINGS_BUTTONS)
     
     elif data == "back_to_main":
         await query.edit_message_text(get_start_message(user), reply_markup=MAIN_BUTTONS)
 
-def is_not_command(_, __, m: Message):
-    return not m.text.startswith('/')
-
-
 # Botu Başlat
 if __name__ == "__main__":
-    print("✨ Bot başlatılıyor...")
-    try:
-        app.run()
-    except Exception as e:
-        logger.error(f"Bot hatası: {e}")
+    print("🚀 Proxy destekli cron bot başlatılıyor...")
+    app.run()
