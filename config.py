@@ -3,7 +3,7 @@ API_ID = int(os.environ.get("API_ID", "20658336"))
 API_HASH = os.environ.get("API_HASH", "cedfb5fb4ffee7ecc746b28afc7925e3") 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "") 
 
-BOT_USERNAME = os.environ.get("BOT_USERNAME" , "LunaGramBot") 
+BOT_USERNAME = os.environ.get("BOT_USERNAME" , "CoreVioBot") 
 SUDO=os.environ.get("SUDO","5910057231")
 BOT_NAME = os.environ.get("BOT_NAME", "ᴛʜᴇɴᴀ ᴀɪ")
 START_IMG = os.environ.get("START_IMG","https://raw.githubusercontent.com/ViosRio/CronBot/refs/heads/main/assets/logo.png")
