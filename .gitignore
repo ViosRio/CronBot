@@ -1,0 +1,44 @@
+# Veritabanı ve kullanıcı verileri
+data/
+
+# Python cache ve geçici dosyalar
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ortam değişkenleri
+.env
+.env.prod
+.env.dev
+
+# Pyrogram session dosyaları
+*.session
+*.session-journal
+proxy-cron-bot.session
+
+# IDE özel dosyalar
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log dosyaları
+*.log
+logs/
+
+# İndirilenler ve oluşturulan dosyalar
+data/
+temp/
+
+# MacOS sistem dosyaları
+.DS_Store
+
+# Windows sistem dosyaları
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python paketleri
+*.egg-info/
+dist/
+build/
