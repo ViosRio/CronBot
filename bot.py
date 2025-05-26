@@ -248,7 +248,7 @@ echo "Cron başarıyla çalıştı!";
                 document="sandbox/cron.php",
                 caption="📝 Örnek Cron Dosyası. Bu dosyayı Sunucunuza Yükleyip URL'sini Bota Ekleyebilirsiniz."
             )
-            os.remove("example_cron.php")
+            os.remove("sandbox/cron.php")
             await query.answer("Örnek Dosya Gönderildi!")
         
         elif data == "list_cron":
