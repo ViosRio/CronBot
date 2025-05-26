@@ -3,6 +3,8 @@ API_ID = int(os.environ.get("API_ID", "20658336"))
 API_HASH = os.environ.get("API_HASH", "cedfb5fb4ffee7ecc746b28afc7925e3") 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "") 
 
+# config.py
+WEBSHARE_API_KEY = "yaydj41805nf8yt92z1cd97vhfir2lqvbywah7ix"  
 BOT_USERNAME = os.environ.get("BOT_USERNAME" , "CoreVioBot") 
 SUDO=os.environ.get("SUDO","5910057231")
 BOT_NAME = os.environ.get("BOT_NAME", "ᴛʜᴇɴᴀ ᴀɪ")
