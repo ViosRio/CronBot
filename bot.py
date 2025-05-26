@@ -30,32 +30,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Veritabanı klasörü
-DATA_DIR = Path("data")
-LIST_DIR = DATA_DIR / "list"
-LIST_DIR.mkdir(parents=True, exist_ok=True)
-
-# Global değişkenler
-active_chats = {}
-waiting_users = {}
-private_mode = {}
-user_friends = {}  # Arkadaş listesi için
-total_users = 0    # Toplam kullanıcı sayısı
-
 # Başlangıç Mesajı
 def get_start_message(user):
-    global total_users
-    emoji = choice(["🔥", "❤️", "🌹", "🎯"])
-    private_status = "✅ AÇIK" if private_mode.get(user.id, False) else "❌ KAPALI"
     return f"""
-✨ **RoxyMask - Anonim Sohbet Botu** ✨
-👥 **Toplam Kullanıcılar:** {total_users}
+✨ **SELAM** ✨
 
-{emoji} **Gizlilik Ve Eğlence Bir Arada!**
+{emoji} **Panelinizin Görev Zamanlayıcı Derdi Olan Cron Job Tetikleyicisi**
 
-▸ **Eşleş** Butonuyla Rastgele Biriyle Sohbet Et
-▸ **Gizli Mod:** {private_status}
-▸ **Arkadaş Sayısı:** {len(user_friends.get(user.id, []))}
+▸ **AUTO** TEKRARLAYAN ZAMANLAMA
+▸ **PROXY** PROXY DESTEKLİ MASKELEME
+▸ **NOTEPAD** NOT DEFTERİ GİBİ KAYDET
 
  Powered by DeepSeek ❤️‍🔥
 """
@@ -71,18 +55,11 @@ MAIN_BUTTONS = InlineKeyboardMarkup([
         InlineKeyboardButton("👥 Arkadaşlar", callback_data="friends"),
         InlineKeyboardButton("👤 Kurucu", url=f"https://t.me/{OWNER_USERNAME}")
     ],
-    [InlineKeyboardButton("❌ Sohbeti Bitir", callback_data="end_chat")]
+    [InlineKeyboardButton("❌ İşlemi durdur", callback_data="end_chat")]
 ])
 
 SETTINGS_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("🔒 Gizli Mod Aç/Kapat", callback_data="toggle_private")],
-    [InlineKeyboardButton("🔙 Geri", callback_data="back_to_main")]
-])
-
-FRIENDS_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("➕ Arkadaş Ekle", callback_data="add_friend")],
-    [InlineKeyboardButton("📋 Arkadaş Listesi", callback_data="list_friends")],
-    [InlineKeyboardButton("📨 Arkadaşa Mesaj Gönder", callback_data="message_friend")],
+    [InlineKeyboardButton("🔒 PROXY Mod Aç/Kapat", callback_data="toggle_private")],
     [InlineKeyboardButton("🔙 Geri", callback_data="back_to_main")]
 ])
 
@@ -126,106 +103,64 @@ async def add_friend(client, message):
         if message.from_user.id not in user_friends:
             user_friends[message.from_user.id] = []
         if friend_id not in user_friends[message.from_user.id]:
-            user_friends[message.from_user.id].append(friend_id)
-            await message.reply(f"✅ Arkadaş eklendi: {friend_id}")
+            user_friends[message.from_user.id].append()
+            await message.reply(f"✅ Cron Job eklendi: ")
         else:
-            await message.reply("⚠️ Bu kullanıcı zaten arkadaş listenizde!")
+            await message.reply("⚠️ Bu Zamanlama Zaten listenizde!")
     else:
-        await message.reply("Kullanım: /add <kullanıcı_id>")
+        await message.reply("Kullanım: /add viosrio.serv00.net/cron.php")
 
 @app.on_message(filters.command("list"))
 async def list_friends(client, message):
     friends = user_friends.get(message.from_user.id, [])
     if friends:
-        await message.reply(f"👥 Arkadaşlarınız:\n" + "\n".join(friends))
+        await message.reply(f"👥 :\n NOTLAR" + "\n".join())
     else:
-        await message.reply("Arkadaş listeniz boş 😢")
+        await message.reply("Jobs listeniz boş 😢")
 
 # Callback Query Handler
-@app.on_callback_query()
-async def callback_handler(client, query: CallbackQuery):
-    user = query.from_user
-    data = query.data
-    
-    if data == "find_partner":
-        if user.id in active_chats:
-            await query.answer("Zaten bir sohbettesiniz!", show_alert=True)
-            return
-        
-        # Eşleşme işlemi
-        if waiting_users:
-            partner_id = next(iter(waiting_users))
-            active_chats[user.id] = partner_id
-            active_chats[partner_id] = user.id
-            del waiting_users[partner_id]
-            
-            await client.send_message(partner_id, "✅ Eşleşme bulundu! Artık sohbet edebilirsiniz.", reply_markup=MAIN_BUTTONS)
-            await query.answer("✅ Eşleşme bulundu! Artık sohbet edebilirsiniz.", show_alert=True)
-            await query.edit_message_reply_markup(reply_markup=MAIN_BUTTONS)
-        else:
-            waiting_users[user.id] = True
-            await query.answer("🔎 Eşleşme aranıyor... Lütfen bekleyin.", show_alert=True)
     
     elif data == "end_chat":
         if user.id in active_chats:
             partner_id = active_chats[user.id]
-            await client.send_message(partner_id, "❌ Sohbet sonlandırıldı!", reply_markup=MAIN_BUTTONS)
+            await client.send_message(partner_id, "❌ işlem sonlandırıldı!", reply_markup=MAIN_BUTTONS)
             del active_chats[partner_id]
             del active_chats[user.id]
-            await query.answer("Sohbet sonlandırıldı!", show_alert=True)
+            await query.answer("işlem sonlandırıldı!", show_alert=True)
             await query.edit_message_reply_markup(reply_markup=MAIN_BUTTONS)
         else:
-            await query.answer("Aktif bir sohbetiniz yok!", show_alert=True)
+            await query.answer("TEKRARLAYAN!", show_alert=True)
     
     elif data == "settings":
         await query.edit_message_text("⚙️ **Ayarlar**", reply_markup=SETTINGS_BUTTONS)
     
     elif data == "toggle_private":
         private_mode[user.id] = not private_mode.get(user.id, False)
-        status = "açıldı" if private_mode[user.id] else "kapatıldı"
+        status = "açıldı" if private_mode[user.id] else "Proxy kapatıldı"
         await query.answer(f"Gizli mod {status}!")
         await query.edit_message_text("⚙️ **Ayarlar**", reply_markup=SETTINGS_BUTTONS)
     
     elif data == "friends":
-        await query.edit_message_text("👥 **Arkadaşlar**", reply_markup=FRIENDS_BUTTONS)
+        await query.edit_message_text("👥 **Notlar**", reply_markup=FRIENDS_BUTTONS)
     
     elif data == "add_friend":
-        await query.answer("Arkadaş eklemek için: /add CEREN", show_alert=True)
+        await query.answer("Arkadaş eklemek için: /add viosrio.serv00.net/cronjob.php", show_alert=True)
     
     elif data == "list_friends":
         friends = user_friends.get(user.id, [])
         if friends:
-            await query.edit_message_text(f"👥 Arkadaşlarınız:\n" + "\n".join(friends))
+            await query.edit_message_text(f"👥 Notlar:\n" + "\n".join())
         else:
-            await query.answer("Arkadaş listeniz boş 😢", show_alert=True)
-    
-    elif data == "message_friend":
-        friends = user_friends.get(user.id, [])
-        if friends:
-            buttons = []
-            for friend in friends:
-                buttons.append([InlineKeyboardButton(f"📨 {friend}", callback_data=f"msg_{friend}")])
-            buttons.append([InlineKeyboardButton("🔙 Geri", callback_data="friends")])
-            await query.edit_message_text(
-                "👥 Arkadaşını seç ve mesaj gönder:",
-                reply_markup=InlineKeyboardMarkup(buttons)
-            )
-        else:
-            await query.answer("Arkadaş listeniz boş 😢", show_alert=True)
-    
-    elif data.startswith("msg_"):
-        friend_id = data[4:]
-        await query.answer(f"Arkadaşınıza mesaj göndermek için: /msg {friend_id} <mesaj>", show_alert=True)
+            await query.answer("Not listeniz boş 😢", show_alert=True)
     
     elif data == "help":
         await query.edit_message_text(
             "📚 **Yardım Menüsü**\n\n"
             "• /start = Botu başlat\n"
-            "• /private = Gizli modu aç/kapat\n"
-            "• /add CEREN = Arkadaş ekle\n"
-            "• /list = Arkadaş listesi\n"
+            "• /private = Vpn modu aç/kapat\n"
+            "• /add serv.net/cron.php = Ekle\n"
+            "• /list = Cron listesi\n"
             "• /settings = Ayarlar\n\n"
-            "🌟 **Eşleş** butonuyla rastgele biriyle sohbet et!",
             reply_markup=HELP_BUTTONS
         )
     
@@ -235,18 +170,6 @@ async def callback_handler(client, query: CallbackQuery):
 def is_not_command(_, __, m: Message):
     return not m.text.startswith('/')
 
-@app.on_message(filters.text & filters.create(is_not_command))
-async def forward_msg(client, message):
-    user_id = message.from_user.id
-    if user_id in active_chats:
-        partner_id = active_chats[user_id]
-        try:
-            if private_mode.get(user_id, False):
-                await client.send_message(partner_id, f"❤️ GİZLİ: {message.text}")
-            else:
-                await client.send_message(partner_id, f"@{message.from_user.username}: {message.text}")
-        except Exception as e:
-            logger.error(f"Mesaj iletme hatası: {e}")
 
 # Botu Başlat
 if __name__ == "__main__":
