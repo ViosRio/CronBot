@@ -230,7 +230,7 @@ async def callback_handler(client, query: CallbackQuery):
                 ])
             )
         
-        elif data == "get_example":
+        elif data == "sandbox/cron.php":
             # Create example cron file
             example_content = """<?php
 // Basit Cron Örneği
@@ -239,17 +239,17 @@ echo "Cron başarıyla çalıştı!";
 ?>"""
             
             # Save temporarily
-            with open("example_cron.php", "w") as f:
+            with open("sandbox/cron.php", "w") as f:
                 f.write(example_content)
             
             # Send to user
             await client.send_document(
                 chat_id=query.message.chat.id,
-                document="example_cron.php",
-                caption="📝 Örnek cron dosyası. Bu dosyayı sunucunuza yükleyip URL'sini bota ekleyebilirsiniz."
+                document="sandbox/cron.php",
+                caption="📝 Örnek Cron Dosyası. Bu dosyayı Sunucunuza Yükleyip URL'sini Bota Ekleyebilirsiniz."
             )
             os.remove("example_cron.php")
-            await query.answer("Örnek dosya gönderildi!")
+            await query.answer("Örnek Dosya Gönderildi!")
         
         elif data == "list_cron":
             jobs = cron_manager.get_user_jobs(user.id)
