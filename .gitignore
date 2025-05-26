@@ -1,5 +1,6 @@
 # Veritabanı ve kullanıcı verileri
 data/
+sandbox/
 
 # Python cache ve geçici dosyalar
 __pycache__/
@@ -29,6 +30,7 @@ logs/
 # İndirilenler ve oluşturulan dosyalar
 data/
 temp/
+sandbox/
 
 # MacOS sistem dosyaları
 .DS_Store
